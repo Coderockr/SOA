@@ -10,67 +10,11 @@ use JMS\Serializer\SerializerBuilder;
 
 class RpcControllerProvider implements ControllerProviderInterface
 {
-	private $useCache = false;
-	private $cache;
-	private $em;
-	private $entityNamespace;
+	private $serviceNamespace;
 
-	public function setCache($cache)
+	public function setServiceNamespace($serviceNamespace)
 	{
-		$this->useCache = true;
-		$this->cache = $cache;
-	}
-	
-	public function setEntityManager($em)
-	{
-		$this->em = $em;
-	}
-
-	public function setEntityNamespace($entityNamespace)
-	{
-		$this->entityNamespace = $entityNamespace;
-	}
-
-	public function find($entity, $id)
-	{
-		$data = $this->em->getRepository($this->entityNamespace . '\\' . ucfirst($entity))->find($id);
-
-		return $data;
-	}
-
-	public function findAll($entity)
-	{
-		$data = $this->em
-					 ->getRepository($this->entityNamespace . '\\' . ucfirst($entity))
-					 ->findAll();
-
-		return $data;
-	}	
-
-	public function create($request, $entity)
-	{
-		$data = $request->request->all();
-		var_dump($data);
-		return $entity;
-	}
-
-	public function update($request, $entity, $id)
-	{
-		return $id;
-	}
-
-	public function delete($request, $entity, $id)
-	{
-		$data = $this->em
-					 ->getRepository($this->entityNamespace . '\\' . ucfirst($entity))
-					 ->find($id);
-	    if (!$data) {
-	        return false;
-	    }
-	    $this->em->remove($data);
-	    $this->em->flush();
-
-	    return true;
+		$this->serviceNamespace = $serviceNamespace;
 	}
 
 	protected function serialize($data, $type)
@@ -81,7 +25,6 @@ class RpcControllerProvider implements ControllerProviderInterface
 
 	public function connect(Application $app)
     {
-    	$this->setEntityManager($app['orm.em']);
         // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
 
@@ -90,38 +33,44 @@ class RpcControllerProvider implements ControllerProviderInterface
             return 'TODO: documentation';
         });
         
-        $controllers->get('/{entity}', function (Application $app, $entity) {
-        	return $this->serialize($this->findAll($entity), 'json');
-        });
+        $controllers->post('/{service}', function ($service, Request $request) use ($app)
+		{
+		    $service = $this->serviceNamespace . '\\' . ucfirst($service)
 
-        $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
-        	$data =  $this->find($entity, $id);
-        	if (!$data) {
-        		return new Response('Data not found', 404, array('Content-Type' => 'text/json'));
-        	}
-        	return $this->serialize($data, 'json');
-        })->assert('id', '\d+');
+		    if (!class_exists($service)) {
+		        return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
+		    }
+		    $class = new $service($em);
+		    if (!$parameters = $request->get('parameters')) 
+		        $parameters = array();
 
-        $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
-        	return $this->create($request, $entity);
-        });
+		    $result = $class->execute($parameters);
 
-        $controllers->put('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
-        	return $this->update($request, $entity, $id);
-        });
+		    switch ($result['status']) {
+		        case 'success':
+		            return new Response($this->serialize($result['data'],'json'), 200, array('Content-Type' => 'text/json'));
+		            break;
+		        case 'error':
+		            return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), 400, array('Content-Type' => 'text/json'));
+		            break;
+		    }
 
-        $controllers->delete('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
-        	$deleted = $this->delete($request, $entity, $id);
-
-        	if (!$deleted) {
-        		return new Response('Data not found', 404, array('Content-Type' => 'text/json'));
-        	}
-        	return new Response('Data deleted', 200, array('Content-Type' => 'text/json'));
-        });
-
-        $controllers->after(function (Request $request, Response $response) {
-    		$response->headers->set('Content-Type', 'text/json');
 		});
+        $controllers->before(function (Request $request) use ($app) {
+            if ($request->getMethod() == 'OPTIONS') {
+                return;
+            }
+
+            //@TODO: review this
+            // if( ! $request->headers->has('authorization')){
+            //     return new Response('Unauthorized', 401);
+            // }
+
+            // require_once getenv('APPLICATION_PATH').'/configs/clients.php';
+            // if (!in_array($request->headers->get('authorization'), array_keys($clients))) {
+            //     return new Response('Unauthorized', 401);
+            // }
+        });
 
         return $controllers;
     }	
