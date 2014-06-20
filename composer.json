@@ -1,0 +1,37 @@
+{
+    "name": "coderockr/soa",
+    "description": "Silex Controller Provider to provide SOA access to Doctrine entities and services",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Mateus Guerra",
+            "email": "mateus@coderockr.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Elton Minetto",
+            "email": "eminetto@coderockr.com",
+            "homepage": "http://eltonminetto.net/",
+            "role": "Developer"
+        }
+    ],
+    "keywords": [
+        "framework",
+        "silex",
+        "doctrine",
+	    "api",
+	    "provider"
+    ],
+    "homepage": "http://coderockr.com/",
+    "license": "BSD-3-Clause",
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.3.3",
+        "silex/silex": "*",
+        "symfony/http-kernel": "*",
+        "jms/serializer": "*",
+        "doctrine/common": "2.4.*@dev",
+        "doctrine/dbal": "2.4.*@dev",
+        "doctrine/orm": "2.4.*@dev"
+    }
+}
