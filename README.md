@@ -94,5 +94,5 @@
 
 	$rpc = new RpcControllerProvider();
 	$rpc->setCache($cache); //Doctrine cache, created in bootstrap.php
-	$rpc->setEntityNamespace('Skel\Service');
+	$rpc->setServiceNamespace('Skel\Service');
 	$app->mount('/rpc', $rpc);
