@@ -10,7 +10,15 @@ use JMS\Serializer\SerializerBuilder;
 
 class RpcControllerProvider implements ControllerProviderInterface
 {
-	private $serviceNamespace;
+    private $useCache = false;
+    private $cache;
+    private $serviceNamespace;
+
+    public function setCache($cache)
+    {
+        $this->useCache = true;
+        $this->cache = $cache;
+    }
 
 	public function setServiceNamespace($serviceNamespace)
 	{
