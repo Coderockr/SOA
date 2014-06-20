@@ -38,5 +38,5 @@
         "psr-0": {
             "Coderockr\\SOA": "src/"
         }
-    },
+    }
 }
