@@ -13,11 +13,17 @@ class RpcControllerProvider implements ControllerProviderInterface
     private $useCache = false;
     private $cache;
     private $serviceNamespace;
+    private $em;
 
     public function setCache($cache)
     {
         $this->useCache = true;
         $this->cache = $cache;
+    }
+
+    public function setEntityManager($em)
+    {
+        $this->em = $em;
     }
 
 	public function setServiceNamespace($serviceNamespace)
@@ -33,6 +39,8 @@ class RpcControllerProvider implements ControllerProviderInterface
 
 	public function connect(Application $app)
     {
+    	$this->setEntityManager($app['orm.em']);
+    	
         // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
 
