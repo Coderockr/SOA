@@ -33,5 +33,10 @@
         "doctrine/common": "2.4.*@dev",
         "doctrine/dbal": "2.4.*@dev",
         "doctrine/orm": "2.4.*@dev"
-    }
+    },
+    "autoload": {
+        "psr-0": {
+            "Coderockr\\SOA": "src/"
+        }
+    },
 }
