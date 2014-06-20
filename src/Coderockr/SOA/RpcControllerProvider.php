@@ -40,7 +40,7 @@ class RpcControllerProvider implements ControllerProviderInterface
 	public function connect(Application $app)
     {
     	$this->setEntityManager($app['orm.em']);
-    	
+
         // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
 
@@ -56,7 +56,8 @@ class RpcControllerProvider implements ControllerProviderInterface
 		    if (!class_exists($service)) {
 		        return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
 		    }
-		    $class = new $service($em);
+		    $class = new $service();
+		    $class->setEm($this->em);
 		    if (!$parameters = $request->get('parameters')) 
 		        $parameters = array();
 
