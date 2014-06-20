@@ -35,7 +35,7 @@ class RpcControllerProvider implements ControllerProviderInterface
         
         $controllers->post('/{service}', function ($service, Request $request) use ($app)
 		{
-		    $service = $this->serviceNamespace . '\\' . ucfirst($service)
+		    $service = $this->serviceNamespace . '\\' . ucfirst($service);
 
 		    if (!class_exists($service)) {
 		        return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
@@ -56,6 +56,17 @@ class RpcControllerProvider implements ControllerProviderInterface
 		    }
 
 		});
+
+		//options - used in cross domain access
+        $controllers->match('/{service}', function ($service, Request $request) use ($app) 
+        {
+            return new Response('', 200, array(
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
+                'Access-Control-Allow-Headers' => 'Authorization'
+            ));
+        })->method('OPTIONS')->value('service', null);
+
         $controllers->before(function (Request $request) use ($app) {
             if ($request->getMethod() == 'OPTIONS') {
                 return;
