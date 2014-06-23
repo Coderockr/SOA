@@ -49,30 +49,34 @@ class RpcControllerProvider implements ControllerProviderInterface
             return 'TODO: documentation';
         });
         
-        $controllers->post('/{service}', function ($service, Request $request) use ($app)
-		{
-		    $service = $this->serviceNamespace . '\\' . ucfirst($service);
+        $controllers->post('/{service}/{method}', function ($service, $method, Request $request) use ($app)
+        {
+            $service = $this->serviceNamespace . '\\' . ucfirst($service);
 
-		    if (!class_exists($service)) {
-		        return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
-		    }
-		    $class = new $service();
-		    $class->setEm($this->em);
-		    if (!$parameters = $request->get('parameters')) 
-		        $parameters = array();
+            if (!class_exists($service)) {
+                return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
+            }
+            $class = new $service();
+            $class->setEm($this->em);
+            if (!$parameters = $request->get('parameters')) 
+                $parameters = array();
 
-		    $result = $class->execute($parameters);
+            if (method_exists($class, $method)) {
+                $result = $class->$method($parameters);
+            }
+            else {
+                $result = array('status' => 'error', 'data' => 'Method not found');
+            }
+            switch ($result['status']) {
+                case 'success':
+                    return new Response($this->serialize($result['data'],'json'), 200, array('Content-Type' => 'text/json'));
+                    break;
+                case 'error':
+                    return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), 400, array('Content-Type' => 'text/json'));
+                    break;
+            }
 
-		    switch ($result['status']) {
-		        case 'success':
-		            return new Response($this->serialize($result['data'],'json'), 200, array('Content-Type' => 'text/json'));
-		            break;
-		        case 'error':
-		            return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), 400, array('Content-Type' => 'text/json'));
-		            break;
-		    }
-
-		});
+        })->value('method', 'execute');
 
 		//options - used in cross domain access
         $controllers->match('/{service}', function ($service, Request $request) use ($app) 
