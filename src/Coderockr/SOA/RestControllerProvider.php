@@ -212,7 +212,7 @@ class RestControllerProvider implements ControllerProviderInterface
                 return;
             }
 
-            if ($this->getAuthorizationService()) {
+            if ($this->getAuthenticationService()) {
                 if( ! $request->headers->has('authorization')) {
                     return new Response('Unauthorized', 401);
                 }
@@ -221,9 +221,11 @@ class RestControllerProvider implements ControllerProviderInterface
                 if (!$this->getAuthenticationService()->authenticate($token)) {
                     return new Response('Unauthorized', 401);    
                 }
-                $resource = $request->get('_route_params');
-                if (!$this->getAuthorizationService()->isAuthorized($token, $resource['entity'])) {
-                    return new Response('Unauthorized', 401);    
+                if ($this->getAuthorizationService()) {
+                    $resource = $request->get('_route_params');
+                    if (!$this->getAuthorizationService()->isAuthorized($token, $resource['entity'])) {
+                        return new Response('Unauthorized', 401);    
+                    }
                 }
 
             }
