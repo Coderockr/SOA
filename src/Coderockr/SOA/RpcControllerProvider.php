@@ -14,6 +14,8 @@ class RpcControllerProvider implements ControllerProviderInterface
     private $cache;
     private $serviceNamespace;
     private $em;
+    private $authenticationService = null;
+    private $authorizationService = null;
 
     public function setCache($cache)
     {
@@ -36,6 +38,26 @@ class RpcControllerProvider implements ControllerProviderInterface
 		$serializer = SerializerBuilder::create()->build();
 		return $serializer->serialize($data, $type);
 	}
+
+    public function getAuthorizationService()
+    {
+        return $this->authorizationService;
+    }
+     
+    public function setAuthorizationService($authorizationService)
+    {
+        return $this->authorizationService = $authorizationService;
+    }
+
+    public function getAuthenticationService()
+    {
+        return $this->authenticationService;
+    }
+     
+    public function setAuthenticationService($authenticationService)
+    {
+        return $this->authenticationService = $authenticationService;
+    }
 
 	public function connect(Application $app)
     {
@@ -93,15 +115,21 @@ class RpcControllerProvider implements ControllerProviderInterface
                 return;
             }
 
-            //@TODO: review this
-            // if( ! $request->headers->has('authorization')){
-            //     return new Response('Unauthorized', 401);
-            // }
+            if ($this->getAuthorizationService()) {
+                if( ! $request->headers->has('authorization')) {
+                    return new Response('Unauthorized', 401);
+                }
 
-            // require_once getenv('APPLICATION_PATH').'/configs/clients.php';
-            // if (!in_array($request->headers->get('authorization'), array_keys($clients))) {
-            //     return new Response('Unauthorized', 401);
-            // }
+                $token = $request->headers->get('authorization');
+                if (!$this->getAuthenticationService()->authenticate($token)) {
+                    return new Response('Unauthorized', 401);    
+                }
+                $resource = $request->get('_route_params');
+                if (!$this->getAuthorizationService()->isAuthorized($token, $resource['service'] . $resource['method'])) {
+                    return new Response('Unauthorized', 401);    
+                }
+
+            }
         });
 
         return $controllers;
