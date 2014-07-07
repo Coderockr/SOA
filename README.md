@@ -90,9 +90,15 @@
 	$api = new RestControllerProvider();
 	$api->setCache($cache); //Doctrine cache, created in bootstrap.php
 	$api->setEntityNamespace('Skel\Model');
+	//you can set authorization and authentication classes
+	//$api->setAuthenticationService(new \Skel\Service\AuthenticationService);
+	//$api->setAuthorizationService(new \Skel\Service\AuthorizationService);
 	$app->mount('/api', $api);
 
 	$rpc = new RpcControllerProvider();
 	$rpc->setCache($cache); //Doctrine cache, created in bootstrap.php
 	$rpc->setServiceNamespace('Skel\Service');
+	//you can set authorization and authentication classes
+	//$api->setAuthenticationService(new \Skel\Service\AuthenticationService);
+	//$api->setAuthorizationService(new \Skel\Service\AuthorizationService);
 	$app->mount('/rpc', $rpc);
