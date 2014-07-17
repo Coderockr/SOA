@@ -7,6 +7,7 @@ use Silex\ControllerProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
+use JMS\Serializer\SerializationContext;
 
 class RestControllerProvider implements ControllerProviderInterface
 {
@@ -82,7 +83,6 @@ class RestControllerProvider implements ControllerProviderInterface
         $entity = new $entityName;
 
         $data = $request->request->all();
-        
         $this->em->persist($this->setData($entity, $data));
         $this->em->flush();
 
@@ -146,7 +146,15 @@ class RestControllerProvider implements ControllerProviderInterface
     protected function serialize($data, $type)
     {
         $serializer = SerializerBuilder::create()->build();
-        return $serializer->serialize($data, $type);
+        $groupType = array($this->entityNamespace . '\Entity');
+        if (is_object($data)) {
+            $groupType[] = get_class($data);
+
+        }
+        if (is_array($data) && isset($data[0]) && is_object($data[0])) {
+            $groupType[] = get_class($data[0]);
+        }
+        return $serializer->serialize($data, $type, SerializationContext::create()->setGroups($groupType));
     }
 
     public function connect(Application $app)
