@@ -82,19 +82,32 @@ class RpcControllerProvider implements ControllerProviderInterface
             $class->setEm($this->em);
             if (!$parameters = $request->get('parameters')) 
                 $parameters = array();
-
+            
+            $statusCode = null;
             if (method_exists($class, $method)) {
                 $result = $class->$method($parameters);
             }
             else {
-                $result = array('status' => 'error', 'data' => 'Method not found');
+                $result = array('status' => 'error', 'data' => 'Method not found', 'statusCode' => 400);
             }
+            if (isset($result['statusCode'])) {
+                $statusCode = $result['statusCode'];
+            }
+            
             switch ($result['status']) {
                 case 'success':
-                    return new Response($this->serialize($result['data'],'json'), 200, array('Content-Type' => 'text/json'));
+                    if (!$statusCode) {
+                        $statusCode = 200;
+                    }
+                    return new Response($this->serialize($result['data'],'json'), $statusCode, array('Content-Type' => 'text/json'));
+
                     break;
                 case 'error':
-                    return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), 400, array('Content-Type' => 'text/json'));
+                    if (!$statusCode) {
+                        $statusCode = 400;
+                    }
+                    return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), $statusCode, array('Content-Type' => 'text/json'));
+                    
                     break;
             }
 
