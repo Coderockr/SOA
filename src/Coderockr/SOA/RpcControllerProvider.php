@@ -7,6 +7,7 @@ use Silex\ControllerProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
+use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 
 class RpcControllerProvider implements ControllerProviderInterface
 {
@@ -43,7 +44,7 @@ class RpcControllerProvider implements ControllerProviderInterface
 
 	protected function serialize($data, $type)
 	{
-		$serializer = SerializerBuilder::create()->build();
+		$serializer = SerializerBuilder::create()->setPropertyNamingStrategy(new IdenticalPropertyNamingStrategy())->build();
 		return $serializer->serialize($data, $type);
 	}
 

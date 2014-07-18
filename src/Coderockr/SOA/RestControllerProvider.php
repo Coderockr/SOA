@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
 use JMS\Serializer\SerializationContext;
+use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 
 class RestControllerProvider implements ControllerProviderInterface
 {
@@ -147,7 +148,7 @@ class RestControllerProvider implements ControllerProviderInterface
 
     protected function serialize($data, $type)
     {
-        $serializer = SerializerBuilder::create()->build();
+        $serializer = SerializerBuilder::create()->setPropertyNamingStrategy(new IdenticalPropertyNamingStrategy())->build();
         $groupType = array($this->entityNamespace . '\Entity');
         if (is_object($data)) {
             $groupType[] = get_class($data);
