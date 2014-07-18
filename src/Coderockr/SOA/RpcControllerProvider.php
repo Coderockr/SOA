@@ -10,12 +10,15 @@ use JMS\Serializer\SerializerBuilder;
 
 class RpcControllerProvider implements ControllerProviderInterface
 {
+    const AUTHORIZATION_HEADER = 'authorization';
+
     private $useCache = false;
     private $cache;
     private $serviceNamespace;
     private $em;
     private $authenticationService = null;
     private $authorizationService = null;
+    private $noAuthCalls = array();
 
     public function setCache($cache)
     {
@@ -28,6 +31,11 @@ class RpcControllerProvider implements ControllerProviderInterface
         $this->em = $em;
     }
 
+    public function getNoAuthCalls()
+    {
+        return $this->noAuthCalls;
+    }
+    
 	public function setServiceNamespace($serviceNamespace)
 	{
 		$this->serviceNamespace = $serviceNamespace;
@@ -54,20 +62,18 @@ class RpcControllerProvider implements ControllerProviderInterface
         return $this->authenticationService;
     }
      
-    public function setAuthenticationService($authenticationService)
+    public function setAuthenticationService($authenticationService, $noAuthCalls = array())
     {
+        $this->noAuthCalls = $noAuthCalls;
         return $this->authenticationService = $authenticationService;
     }
 
 	public function connect(Application $app)
     {
     	$this->setEntityManager($app['orm.em']);
-
-        // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
 
         $controllers->get('/', function (Application $app) {
-            // return $app->redirect('/hello');
             return 'TODO: documentation';
         });
         
@@ -78,43 +84,40 @@ class RpcControllerProvider implements ControllerProviderInterface
             if (!class_exists($service)) {
                 return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
             }
+            
             $class = new $service();
             $class->setEm($this->em);
+
             if (!$parameters = $request->get('parameters')) 
                 $parameters = array();
             
-            $statusCode = null;
             if (method_exists($class, $method)) {
                 $result = $class->$method($parameters);
             }
             else {
                 $result = array('status' => 'error', 'data' => 'Method not found', 'statusCode' => 400);
             }
-            if (isset($result['statusCode'])) {
-                $statusCode = $result['statusCode'];
-            }
             
             switch ($result['status']) {
                 case 'success':
-                    if (!$statusCode) {
-                        $statusCode = 200;
-                    }
-                    return new Response($this->serialize($result['data'],'json'), $statusCode, array('Content-Type' => 'text/json'));
+                    
+                    return new Response($this->serialize($result['data'], 'json'), 
+                                        isset($result['statusCode']) ? $result['statusCode'] : 200, 
+                                        array('Content-Type' => 'text/json'));
 
                     break;
                 case 'error':
-                    if (!$statusCode) {
-                        $statusCode = 400;
-                    }
-                    return new Response('Error executing service - ' . $this->serialize($result['data'],'json'), $statusCode, array('Content-Type' => 'text/json'));
+                    
+                    return new Response('Error executing service - ' . $this->serialize($result['data'], 'json'), 
+                                        isset($result['statusCode']) ? $result['statusCode'] : 400, 
+                                        array('Content-Type' => 'text/json'));
                     
                     break;
             }
 
         })->value('method', 'execute');
 
-		//options - used in cross domain access
-        $controllers->match('/{service}', function ($service, Request $request) use ($app) 
+		$controllers->match('/{service}', function ($service, Request $request) use ($app) 
         {
             return new Response('', 200, array(
                 'Access-Control-Allow-Origin' => '*',
@@ -124,22 +127,36 @@ class RpcControllerProvider implements ControllerProviderInterface
         })->method('OPTIONS')->value('service', null);
 
         $controllers->before(function (Request $request) use ($app) {
+            
             if ($request->getMethod() == 'OPTIONS') {
                 return;
             }
 
-            if ($this->getAuthenticationService()) {
-                if( ! $request->headers->has('authorization')) {
+            $resource = $request->get('_route_params');
+            $route = $resource['service'] .'/'.$resource['method'];
+            
+            if (in_array($route, $this->getNoAuthCalls())) {
+                return;
+            }
+
+            $authService = $this->getAuthenticationService();
+            if ($authService) {
+                if(!$request->headers->has($this::AUTHORIZATION_HEADER)) {
                     return new Response('Unauthorized', 401);
                 }
 
-                $token = $request->headers->get('authorization');
-                if (!$this->getAuthenticationService()->authenticate($token)) {
+                $token = $request->headers->get($this::AUTHORIZATION_HEADER);
+                $authService->setEm($this->em);
+
+                if (!$$authService->authenticate($token)) {
                     return new Response('Unauthorized', 401);    
                 }
-                if ($this->getAuthorizationService()) {
-                    $resource = $request->get('_route_params');
-                    if (!$this->getAuthorizationService()->isAuthorized($token, $resource['service'] . $resource['method'])) {
+
+                $authorizationService = $this->getAuthorizationService();
+                if ($authorizationService) {
+                    
+                    $authorizationService->setEm($this->em);
+                    if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
                         return new Response('Unauthorized', 401);    
                     }
                 }
@@ -147,5 +164,5 @@ class RpcControllerProvider implements ControllerProviderInterface
         });
 
         return $controllers;
-    }	
+    }
 }

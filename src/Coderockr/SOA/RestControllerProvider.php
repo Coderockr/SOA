@@ -11,6 +11,8 @@ use JMS\Serializer\SerializationContext;
 
 class RestControllerProvider implements ControllerProviderInterface
 {
+    const AUTHORIZATION_HEADER = 'authorization';
+
     private $useCache = false;
     private $cache;
     private $em;
@@ -160,7 +162,6 @@ class RestControllerProvider implements ControllerProviderInterface
     public function connect(Application $app)
     {
         $this->setEntityManager($app['orm.em']);
-        // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
 
         $controllers->get('/', function (Application $app) {
@@ -205,7 +206,6 @@ class RestControllerProvider implements ControllerProviderInterface
             $response->headers->set('Content-Type', 'text/json');
         });
 
-        //options - used in cross domain access
         $controllers->match('{entity}/{id}', function ($entity, $id, Request $request) use ($app) 
         {
             return new Response('', 200, array(
@@ -220,18 +220,24 @@ class RestControllerProvider implements ControllerProviderInterface
                 return;
             }
 
-            if ($this->getAuthenticationService()) {
-                if( ! $request->headers->has('authorization')) {
+            $authService = $this->getAuthenticationService();
+            if ($authService) {
+                if(!$request->headers->has($this::AUTHORIZATION_HEADER)) {
                     return new Response('Unauthorized', 401);
                 }
 
-                $token = $request->headers->get('authorization');
-                if (!$this->getAuthenticationService()->authenticate($token)) {
+                $token = $request->headers->get($this::AUTHORIZATION_HEADER);
+                $authService->setEm($this->em);
+
+                if (!$authService->authenticate($token)) {
                     return new Response('Unauthorized', 401);    
                 }
-                if ($this->getAuthorizationService()) {
-                    $resource = $request->get('_route_params');
-                    if (!$this->getAuthorizationService()->isAuthorized($token, $resource['entity'])) {
+
+                $authorizationService = $this->getAuthorizationService();
+                if ($authorizationService) {
+                    
+                    $authorizationService->setEm($this->em);
+                    if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
                         return new Response('Unauthorized', 401);    
                     }
                 }
