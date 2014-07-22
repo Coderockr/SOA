@@ -71,11 +71,35 @@ class RestControllerProvider implements ControllerProviderInterface
         return $data;
     }
 
-    public function findAll($entity)
+    public function findAll($entity, $fields, $limit, $offset, $filter, $count)
     {
-        $data = $this->em
-                     ->getRepository($this->getEntityName($entity))
-                     ->findAll();
+        $queryBuilder = $this->em->createQueryBuilder();
+        
+        $queryBuilder->from($this->getEntityName($entity), 'e');
+
+        if ($limit) {
+            $queryBuilder->setMaxResults($limit);
+        }
+
+        if ($offset) {
+            $queryBuilder->setFirstResult($offset);
+        }
+        foreach ($filter as $f) {
+            $param = explode("=", $f);
+            $queryBuilder->andWhere($queryBuilder->expr()->like('e.' . $param[0], "'%" . $param[1] . "%'"));
+        }
+
+        
+        $select = 'e';
+        if (count($fields) > 0) {
+            $select .= '.' . implode(',e.', $fields);
+        }
+        if ($count == 1) {
+            $select = 'count(e.id) recordCount';
+        }
+
+        $queryBuilder->select($select);
+        $data = $queryBuilder->getQuery()->getResult();
 
         return $data;
     }   
@@ -169,8 +193,35 @@ class RestControllerProvider implements ControllerProviderInterface
             return 'TODO: documentation';
         });
         
-        $controllers->get('/{entity}', function (Application $app, $entity) {
-            return $this->serialize($this->findAll($entity), 'json');
+        $controllers->get('/{entity}', function (Application $app, $entity, Request $request) {
+            $params = $request->query->all();
+            $fields = null;
+            $limit = null;
+            $offset = null;
+            $filter = null;
+            $count = null;
+
+            if (isset($params['count'])) {
+                $count = $params['count'];
+                unset($params['count']);
+            }
+            if (isset($params['fields'])) {
+                $fields = $pieces = explode(",", $params['fields']);
+                unset($params['fields']);
+            }
+            if (isset($params['limit'])) {
+                $limit = $params['limit'];
+                unset($params['limit']);
+            }
+            if (isset($params['offset'])) {
+                $offset = $params['offset'];
+                unset($params['offset']);
+            }
+            if (isset($params['filter'])) {
+                $filter = $pieces = explode(",", $params['filter']);
+                unset($params['filter']);
+            }
+            return $this->serialize($this->findAll($entity, $fields, $limit, $offset, $filter, $count), 'json');
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {

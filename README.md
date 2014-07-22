@@ -102,3 +102,16 @@
 	//$api->setAuthenticationService(new \Skel\Service\AuthenticationService);
 	//$api->setAuthorizationService(new \Skel\Service\AuthorizationService);
 	$app->mount('/rpc', $rpc);
+
+
+# How to use Rest
+
+## Fields, limit, offset and filters
+
+	http://skel.dev/api/v1/user?fields=id,name&limit=10&offset=0&filter=name=elton,password=teste
+
+## Count 
+	http://skel.dev/api/v1/user?filter=name=elton,password=teste&count=1
+
+	http://skel.dev/api/v1/user?count=1
+
