@@ -175,6 +175,8 @@ class RestControllerProvider implements ControllerProviderInterface
         $this->setEntityManager($app['orm.em']);
         $controllers = $app['controllers_factory'];
 
+        $controllers->match("{url}", function($url) use ($app) { return "OK"; })->assert('url', '.*')->method("OPTIONS");
+
         $controllers->get('/', function (Application $app) {
             return 'TODO: documentation';
         });
@@ -216,24 +218,6 @@ class RestControllerProvider implements ControllerProviderInterface
         $controllers->after(function (Request $request, Response $response) {
             $response->headers->set('Content-Type', 'text/json');
         });
-
-        $controllers->match('{entity}', function ($entity, Request $request) use ($app) 
-        {
-            return new Response('', 200, array(
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers' => 'Authorization'
-            ));
-        })->method('OPTIONS');
-
-        $controllers->match('{entity}/{id}', function ($entity, $id, Request $request) use ($app) 
-        {
-            return new Response('', 200, array(
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers' => 'Authorization'
-            ));
-        })->method('OPTIONS')->value('id', null);
 
         $controllers->before(function (Request $request) use ($app) {
             

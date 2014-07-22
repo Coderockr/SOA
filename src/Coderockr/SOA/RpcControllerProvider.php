@@ -84,6 +84,8 @@ class RpcControllerProvider implements ControllerProviderInterface
     	$this->setEntityManager($app['orm.em']);
         $controllers = $app['controllers_factory'];
 
+        $controllers->match("{url}", function($url) use ($app) { return "OK"; })->assert('url', '.*')->method("OPTIONS");
+
         $controllers->get('/', function (Application $app) {
             return 'TODO: documentation';
         });
@@ -128,15 +130,6 @@ class RpcControllerProvider implements ControllerProviderInterface
             }
 
         })->value('method', 'execute');
-
-		$controllers->match('/{service}/{method}', function ($service, Request $request) use ($app) 
-        {
-            return new Response('', 200, array(
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers' => 'Authorization'
-            ));
-        })->method('OPTIONS')->value('service', null);
 
         $controllers->before(function (Request $request) use ($app) {
 
