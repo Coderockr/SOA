@@ -11,8 +11,6 @@ use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 
 class RpcControllerProvider implements ControllerProviderInterface
 {
-    const AUTHORIZATION_HEADER = 'authorization';
-
     private $useCache = false;
     private $cache;
     private $serviceNamespace;
@@ -20,6 +18,18 @@ class RpcControllerProvider implements ControllerProviderInterface
     private $authenticationService = null;
     private $authorizationService = null;
     private $noAuthCalls = array();
+    private $authHeader = 'Authorization';
+
+    public function getAuthHeader()
+    {
+        return $this->authHeader;
+    }
+    
+    public function setAuthHeader($authHeader)
+    {
+        $this->authHeader = $authHeader;
+        return $this;
+    }
 
     public function setCache($cache)
     {
@@ -74,6 +84,8 @@ class RpcControllerProvider implements ControllerProviderInterface
     	$this->setEntityManager($app['orm.em']);
         $controllers = $app['controllers_factory'];
 
+        $controllers->match("{url}", function($url) use ($app) { return "OK"; })->assert('url', '.*')->method("OPTIONS");
+
         $controllers->get('/', function (Application $app) {
             return 'TODO: documentation';
         });
@@ -88,6 +100,7 @@ class RpcControllerProvider implements ControllerProviderInterface
             
             $class = new $service();
             $class->setEm($this->em);
+            $class->setCache($this->cache);
 
             if (!$parameters = $request->get('parameters')) 
                 $parameters = array();
@@ -118,17 +131,8 @@ class RpcControllerProvider implements ControllerProviderInterface
 
         })->value('method', 'execute');
 
-		$controllers->match('/{service}', function ($service, Request $request) use ($app) 
-        {
-            return new Response('', 200, array(
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers' => 'Authorization'
-            ));
-        })->method('OPTIONS')->value('service', null);
-
         $controllers->before(function (Request $request) use ($app) {
-            
+
             if ($request->getMethod() == 'OPTIONS') {
                 return;
             }
@@ -142,14 +146,17 @@ class RpcControllerProvider implements ControllerProviderInterface
 
             $authService = $this->getAuthenticationService();
             if ($authService) {
-                if(!$request->headers->has($this::AUTHORIZATION_HEADER)) {
+
+                if(!$request->headers->has($this->getAuthHeader())) {
                     return new Response('Unauthorized', 401);
                 }
 
-                $token = $request->headers->get($this::AUTHORIZATION_HEADER);
+                $token = $request->headers->get($this->getAuthHeader());
+                
                 $authService->setEm($this->em);
+                $authService->setCache($this->cache);
 
-                if (!$$authService->authenticate($token)) {
+                if (!$authService->authenticate($token)) {
                     return new Response('Unauthorized', 401);    
                 }
 

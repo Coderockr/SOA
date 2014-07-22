@@ -12,14 +12,24 @@ use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 
 class RestControllerProvider implements ControllerProviderInterface
 {
-    const AUTHORIZATION_HEADER = 'authorization';
-
     private $useCache = false;
     private $cache;
     private $em;
     private $entityNamespace;
     private $authenticationService = null;
     private $authorizationService = null;
+    private $authHeader = 'Authorization';
+
+    public function getAuthHeader()
+    {
+        return $this->authHeader;
+    }
+    
+    public function setAuthHeader($authHeader)
+    {
+        $this->authHeader = $authHeader;
+        return $this;
+    }
 
     public function setCache($cache)
     {
@@ -189,6 +199,8 @@ class RestControllerProvider implements ControllerProviderInterface
         $this->setEntityManager($app['orm.em']);
         $controllers = $app['controllers_factory'];
 
+        $controllers->match("{url}", function($url) use ($app) { return "OK"; })->assert('url', '.*')->method("OPTIONS");
+
         $controllers->get('/', function (Application $app) {
             return 'TODO: documentation';
         });
@@ -258,28 +270,22 @@ class RestControllerProvider implements ControllerProviderInterface
             $response->headers->set('Content-Type', 'text/json');
         });
 
-        $controllers->match('{entity}/{id}', function ($entity, $id, Request $request) use ($app) 
-        {
-            return new Response('', 200, array(
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers' => 'Authorization'
-            ));
-        })->method('OPTIONS')->value('id', null);
-
         $controllers->before(function (Request $request) use ($app) {
+            
             if ($request->getMethod() == 'OPTIONS') {
                 return;
             }
 
             $authService = $this->getAuthenticationService();
             if ($authService) {
-                if(!$request->headers->has($this::AUTHORIZATION_HEADER)) {
+                if(!$request->headers->has($this->getAuthHeader())) {
                     return new Response('Unauthorized', 401);
                 }
 
-                $token = $request->headers->get($this::AUTHORIZATION_HEADER);
+                $token = $request->headers->get($this->getAuthHeader());
+                
                 $authService->setEm($this->em);
+                $authService->setCache($this->cache);
 
                 if (!$authService->authenticate($token)) {
                     return new Response('Unauthorized', 401);    
