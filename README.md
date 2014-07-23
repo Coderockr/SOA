@@ -133,7 +133,7 @@
 	This set of parameters can be combined with both listed above (filters and joins)
 
 ## Count 
-	http://skel.dev/api/v1/user?filter=name=elton,password=teste&count=1
+	http://skel.dev/api/v1/user?filter=name:like:%elton%&count=1
 
 	http://skel.dev/api/v1/user?count=1
 
