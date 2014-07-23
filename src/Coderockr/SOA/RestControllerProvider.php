@@ -81,11 +81,18 @@ class RestControllerProvider implements ControllerProviderInterface
         return $data;
     }
 
-    public function findAll($entity, $fields, $limit, $offset, $filter, $count)
+    public function findAll($entity, $fields, $joins, $limit, $offset, $filter, $count)
     {
         $queryBuilder = $this->em->createQueryBuilder();
-        
         $queryBuilder->from($this->getEntityName($entity), 'e');
+
+        if ($joins) {
+            foreach ($joins as $j) {
+                $join = explode(':', $j);
+                $condition = explode('=', $join[1]);
+                $queryBuilder->innerJoin('e.'.$join[0], 'j', 'WITH', 'j.'.$condition[0]."='".$condition[1]."'");
+            }
+        }
 
         if ($limit) {
             $queryBuilder->setMaxResults($limit);
@@ -208,20 +215,22 @@ class RestControllerProvider implements ControllerProviderInterface
         });
         
         $controllers->get('/{entity}', function (Application $app, $entity, Request $request) {
+            
             $params = $request->query->all();
             $fields = null;
+            $joins = null;
             $limit = null;
             $offset = null;
             $filter = null;
             $count = null;
 
-            if (isset($params['count'])) {
-                $count = $params['count'];
-                unset($params['count']);
-            }
             if (isset($params['fields'])) {
                 $fields = $pieces = explode(",", $params['fields']);
                 unset($params['fields']);
+            }
+            if (isset($params['joins'])) {
+                $joins = $pieces = explode(",", $params['joins']);
+                unset($params['joins']);
             }
             if (isset($params['limit'])) {
                 $limit = $params['limit'];
@@ -235,7 +244,12 @@ class RestControllerProvider implements ControllerProviderInterface
                 $filter = $pieces = explode(",", $params['filter']);
                 unset($params['filter']);
             }
-            return $this->serialize($this->findAll($entity, $fields, $limit, $offset, $filter, $count), 'json');
+            if (isset($params['count'])) {
+                $count = $params['count'];
+                unset($params['count']);
+            }
+            
+            return $this->serialize($this->findAll($entity, $fields, $joins, $limit, $offset, $filter, $count), 'json');
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
