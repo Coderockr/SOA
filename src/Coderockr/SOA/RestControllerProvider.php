@@ -115,8 +115,13 @@ class RestControllerProvider implements ControllerProviderInterface
 
         if ($filter) {
             foreach ($filter as $f) {
-                $param = explode("=", $f);
-                $queryBuilder->andWhere($queryBuilder->expr()->like('e.' . $param[0], "'%" . $param[1] . "%'"));
+                $param = explode(":", $f);
+                
+                $conditionField = $param[0];
+                $conditionOp = $param[1];
+                $conditionValue = $param[2];
+
+                $queryBuilder->andWhere($queryBuilder->expr()->$conditionOp('e.' . $conditionField, "'" . $conditionValue . "'"));
             }
         }
         
