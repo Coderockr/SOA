@@ -94,11 +94,13 @@ class RestControllerProvider implements ControllerProviderInterface
         if ($offset) {
             $queryBuilder->setFirstResult($offset);
         }
-        foreach ($filter as $f) {
-            $param = explode("=", $f);
-            $queryBuilder->andWhere($queryBuilder->expr()->like('e.' . $param[0], "'%" . $param[1] . "%'"));
-        }
 
+        if ($filter) {
+            foreach ($filter as $f) {
+                $param = explode("=", $f);
+                $queryBuilder->andWhere($queryBuilder->expr()->like('e.' . $param[0], "'%" . $param[1] . "%'"));
+            }
+        }
         
         $select = 'e';
         if (count($fields) > 0) {
