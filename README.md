@@ -106,9 +106,31 @@
 
 # How to use Rest
 
-## Fields, limit, offset and filters
+## How to use filter?
 
-	http://skel.dev/api/v1/user?fields=id,name&limit=10&offset=0&filter=name=elton,password=teste
+	http://skel.dev/api/v1/user?filter=name:like:%elton%,password:eq:teste
+
+	This will query for name LIKE %elton% and password = teste
+
+## How to use joins?
+
+	http://skel.dev/api/v1/user?joins=roleColletion:key:eq:admin
+
+	This will query all users with where roleColletion.key = admin
+
+## Operators:
+
+	Use this guide to check what you can put between field:{operator}:value
+
+	http://docs.doctrine-project.org/en/2.1/reference/query-builder.html#the-expr-class
+
+	You can use `eq` `like` `lt` `lte` `gt` `gte` `neq` and more methods based on key:value
+
+## Combined with Fields, limit, offset
+
+	http://skel.dev/api/v1/user?fields=id,name&limit=10&offset=0
+
+	This set of parameters can be combined with both listed above (filters and joins)
 
 ## Count 
 	http://skel.dev/api/v1/user?filter=name=elton,password=teste&count=1
