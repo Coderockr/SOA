@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
+use Doctrine\ORM\Query\Expr\Join;
 
 class RestControllerProvider implements ControllerProviderInterface
 {
@@ -88,9 +89,19 @@ class RestControllerProvider implements ControllerProviderInterface
 
         if ($joins) {
             foreach ($joins as $j) {
+                
                 $join = explode(':', $j);
-                $condition = explode('=', $join[1]);
-                $queryBuilder->innerJoin('e.'.$join[0], 'j', 'WITH', 'j.'.$condition[0]."='".$condition[1]."'");
+
+                $entityName = 'j'.$join[0];
+                $conditionField = $join[1];
+                $conditionOp = $join[2];
+                $conditionValue = $join[3];
+
+                $queryBuilder->innerJoin(
+                    'e.'.$join[0], 
+                    $entityName, 
+                    Join::WITH, 
+                    $queryBuilder->expr()->$conditionOp($entityName.'.'.$conditionField, "'".$conditionValue."'"));
             }
         }
 
