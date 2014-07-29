@@ -82,7 +82,7 @@ class RestControllerProvider implements ControllerProviderInterface
         return $data;
     }
 
-    public function findAll($entity, $fields, $joins, $limit, $offset, $filter, $count)
+    public function findAll($entity, $fields, $joins, $limit, $offset, $filter, $sort, $count)
     {
         $queryBuilder = $this->em->createQueryBuilder();
         $queryBuilder->from($this->getEntityName($entity), 'e');
@@ -102,6 +102,14 @@ class RestControllerProvider implements ControllerProviderInterface
                     $entityName, 
                     Join::WITH, 
                     $queryBuilder->expr()->$conditionOp($entityName.'.'.$conditionField, "'".$conditionValue."'"));
+            }
+        }
+
+        if ($sort) {
+            
+            $sort = explode(':', $sort);
+            if ($sort > 1) {
+                $queryBuilder->orderBy('e.' . $sort[0], $sort[1]);
             }
         }
 
@@ -239,10 +247,15 @@ class RestControllerProvider implements ControllerProviderInterface
             $offset = null;
             $filter = null;
             $count = null;
+            $sort = null;
 
             if (isset($params['fields'])) {
                 $fields = $pieces = explode(",", $params['fields']);
                 unset($params['fields']);
+            }
+            if (isset($params['sort'])) {
+                $sort = $params['sort'];
+                unset($params['sort']);
             }
             if (isset($params['joins'])) {
                 $joins = $pieces = explode(",", $params['joins']);
@@ -265,7 +278,14 @@ class RestControllerProvider implements ControllerProviderInterface
                 unset($params['count']);
             }
             
-            return $this->serialize($this->findAll($entity, $fields, $joins, $limit, $offset, $filter, $count), 'json');
+            return $this->serialize($this->findAll($entity, 
+                $fields, 
+                $joins, 
+                $limit, 
+                $offset, 
+                $filter,
+                $sort, 
+                $count), 'json');
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
