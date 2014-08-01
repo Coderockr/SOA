@@ -97,6 +97,10 @@ class RestControllerProvider implements ControllerProviderInterface
                 $conditionOp = $join[2];
                 $conditionValue = $join[3];
 
+                if ($conditionOp == 'like') {
+                    $conditionValue = '%'.$conditionValue.'%';
+                }
+
                 $queryBuilder->innerJoin(
                     'e.'.$join[0], 
                     $entityName, 
@@ -128,6 +132,10 @@ class RestControllerProvider implements ControllerProviderInterface
                 $conditionField = $param[0];
                 $conditionOp = $param[1];
                 $conditionValue = $param[2];
+
+                if ($conditionOp == 'like') {
+                    $conditionValue = '%'.$conditionValue.'%';
+                }
 
                 $queryBuilder->andWhere($queryBuilder->expr()->$conditionOp('e.' . $conditionField, "'" . $conditionValue . "'"));
             }
