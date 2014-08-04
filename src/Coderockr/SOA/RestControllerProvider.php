@@ -4,8 +4,8 @@ namespace Coderockr\SOA;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
@@ -186,7 +186,6 @@ class RestControllerProvider implements ControllerProviderInterface
         }
 
         return $entity;
-
     }
 
     public function update($request, $entity, $id)
@@ -215,6 +214,7 @@ class RestControllerProvider implements ControllerProviderInterface
         if (!$data) {
             return false;
         }
+
         $this->em->remove($data);
         $this->em->flush();
 
@@ -249,85 +249,59 @@ class RestControllerProvider implements ControllerProviderInterface
         $controllers->get('/{entity}', function (Application $app, $entity, Request $request) {
             
             $params = $request->query->all();
-            $fields = null;
-            $joins = null;
-            $limit = null;
-            $offset = null;
-            $filter = null;
-            $count = null;
-            $sort = null;
-
-            if (isset($params['fields'])) {
-                $fields = $pieces = explode(",", $params['fields']);
-                unset($params['fields']);
-            }
-            if (isset($params['sort'])) {
-                $sort = $params['sort'];
-                unset($params['sort']);
-            }
-            if (isset($params['joins'])) {
-                $joins = $pieces = explode(",", $params['joins']);
-                unset($params['joins']);
-            }
-            if (isset($params['limit'])) {
-                $limit = $params['limit'];
-                unset($params['limit']);
-            }
-            if (isset($params['offset'])) {
-                $offset = $params['offset'];
-                unset($params['offset']);
-            }
-            if (isset($params['filter'])) {
-                $filter = $pieces = explode(",", $params['filter']);
-                unset($params['filter']);
-            }
-            if (isset($params['count'])) {
-                $count = $params['count'];
-                unset($params['count']);
-            }
+            $fields = isset($params['fields']) ? explode(",", $params['fields']) : null;
+            $joins = isset($params['joins']) ? explode(",", $params['joins']) : null;
+            $limit = isset($params['limit']) ? $params['limit'] : null;
+            $offset = isset($params['offset']) ? $params['offset'] : null;
+            $filter = isset($params['filter']) ? explode(",", $params['filter']) : null;
+            $count = isset($params['count']) ? $params['count'] : null;
+            $sort = isset($params['sort']) ? $params['sort'] : null;
             
-            return $this->serialize($this->findAll($entity, 
-                $fields, 
+            $data = $this->serialize($this->findAll($entity,
+                $fields,
                 $joins, 
                 $limit, 
                 $offset, 
                 $filter,
                 $sort, 
                 $count), 'json');
+
+            return new JsonResponse($data);
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
             $data =  $this->find($entity, $id);
             if (!$data) {
-                return new Response('Data not found', 404, array('Content-Type' => 'text/json'));
+                return new JsonResponse('Data not found', 404);
             }
-            return $this->serialize($data, 'json');
+            $data = $this->serialize($data, 'json');
+            return new JsonResponse($data);
         })->assert('id', '\d+');
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
-            return $this->serialize($this->create($request, $entity), 'json');
+            $data = $this->serialize($this->create($request, $entity), 'json');
+            return new JsonResponse($data);
         });
 
         $controllers->put('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
             $data = $this->update($request, $entity, $id);
 
             if (!$data) {
-                return new Response('Data not found', 404, array('Content-Type' => 'text/json'));
+                return new JsonResponse('Data not found', 404);
             }
-            return $this->serialize($data, 'json');
+
+            $data = $this->serialize($data, 'json');
+            return new JsonResponse($data, 200);
         });
 
         $controllers->delete('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
             $deleted = $this->delete($request, $entity, $id);
 
             if (!$deleted) {
-                return new Response('Data not found', 404, array('Content-Type' => 'text/json'));
+                return new JsonResponse('Data not found', 404);
             }
-            return new Response('Data deleted', 200, array('Content-Type' => 'text/json'));
-        });
 
-        $controllers->after(function (Request $request, Response $response) {
-            $response->headers->set('Content-Type', 'text/json');
+            return new JsonResponse('Data deleted', 204);
         });
 
         $controllers->before(function (Request $request) use ($app) {
@@ -337,29 +311,32 @@ class RestControllerProvider implements ControllerProviderInterface
             }
 
             $authService = $this->getAuthenticationService();
-            if ($authService) {
-                if(!$request->headers->has($this->getAuthHeader())) {
-                    return new Response('Unauthorized', 401);
-                }
+            if (!$authService) {
+                return;
+            }
 
-                $token = $request->headers->get($this->getAuthHeader());
-                
-                $authService->setEm($this->em);
-                $authService->setCache($this->cache);
+            if(!$request->headers->has($this->getAuthHeader())) {
+                return new JsonResponse('Unauthorized', 401);
+            }
 
-                if (!$authService->authenticate($token)) {
-                    return new Response('Unauthorized', 401);    
-                }
+            $token = $request->headers->get($this->getAuthHeader());
 
-                $authorizationService = $this->getAuthorizationService();
-                if ($authorizationService) {
-                    
-                    $authorizationService->setEm($this->em);
-                    if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
-                        return new Response('Unauthorized', 401);    
-                    }
-                }
+            $authService->setEm($this->em);
+            $authService->setCache($this->cache);
 
+            if (!$authService->authenticate($token)) {
+                return new JsonResponse('Unauthorized', 401);
+            }
+
+            $authorizationService = $this->getAuthorizationService();
+            if (!$authorizationService) {
+                return;
+            }
+
+            $authorizationService->setEm($this->em);
+
+            if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
+                return new JsonResponse('Unauthorized', 401);
             }
             
         });
