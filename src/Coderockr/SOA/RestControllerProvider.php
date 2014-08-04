@@ -4,6 +4,7 @@ namespace Coderockr\SOA;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use JMS\Serializer\SerializerBuilder;
@@ -257,7 +258,7 @@ class RestControllerProvider implements ControllerProviderInterface
             $count = isset($params['count']) ? $params['count'] : null;
             $sort = isset($params['sort']) ? $params['sort'] : null;
             
-            $data = $this->serialize($this->findAll($entity,
+            return $this->serialize($this->findAll($entity,
                 $fields,
                 $joins, 
                 $limit, 
@@ -265,17 +266,17 @@ class RestControllerProvider implements ControllerProviderInterface
                 $filter,
                 $sort, 
                 $count), 'json');
-
-            return new JsonResponse($data);
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
+            
             $data =  $this->find($entity, $id);
             if (!$data) {
                 return new JsonResponse('Data not found', 404);
             }
-            $data = $this->serialize($data, 'json');
-            return new JsonResponse($data);
+            
+            return $this->serialize($data, 'json');
+        
         })->assert('id', '\d+');
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
@@ -284,8 +285,8 @@ class RestControllerProvider implements ControllerProviderInterface
         });
 
         $controllers->put('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
+            
             $data = $this->update($request, $entity, $id);
-
             if (!$data) {
                 return new JsonResponse('Data not found', 404);
             }
@@ -295,13 +296,17 @@ class RestControllerProvider implements ControllerProviderInterface
         });
 
         $controllers->delete('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
+            
             $deleted = $this->delete($request, $entity, $id);
-
             if (!$deleted) {
                 return new JsonResponse('Data not found', 404);
             }
 
             return new JsonResponse('Data deleted', 204);
+        });
+
+        $controllers->after(function (Request $request, Response $response) {
+            $response->headers->set('Content-Type', 'text/json');
         });
 
         $controllers->before(function (Request $request) use ($app) {
@@ -338,7 +343,6 @@ class RestControllerProvider implements ControllerProviderInterface
             if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
                 return new JsonResponse('Unauthorized', 401);
             }
-            
         });
 
         return $controllers;

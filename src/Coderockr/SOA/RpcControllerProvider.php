@@ -4,6 +4,7 @@ namespace Coderockr\SOA;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use JMS\Serializer\SerializerBuilder;
@@ -112,12 +113,15 @@ class RpcControllerProvider implements ControllerProviderInterface
             }
 
             if ('success' === $result['status']) {
-                return new JsonResponse($this->serialize($result['data'], 'json'),
-                                isset($result['statusCode']) ? $result['statusCode'] : 200);
+                
+                return new Response($this->serialize($result['data'], 'json'), 
+                                    isset($result['statusCode']) ? $result['statusCode'] : 200, 
+                                    array('Content-Type' => 'text/json'));
             }
 
-            return new JsonResponse('Error executing service - ' . $this->serialize($result['data'], 'json'),
-                                isset($result['statusCode']) ? $result['statusCode'] : 400);
+            return new Response('Error executing service - ' . $this->serialize($result['data'], 'json'), 
+                                isset($result['statusCode']) ? $result['statusCode'] : 400, 
+                                array('Content-Type' => 'text/json'));
 
         })->value('method', 'execute');
 
