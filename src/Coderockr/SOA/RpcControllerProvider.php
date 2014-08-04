@@ -4,8 +4,8 @@ namespace Coderockr\SOA;
 
 use Silex\Application;
 use Silex\ControllerProviderInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use JMS\Serializer\SerializerBuilder;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 
@@ -95,39 +95,29 @@ class RpcControllerProvider implements ControllerProviderInterface
             $service = $this->serviceNamespace . '\\' . ucfirst($service);
 
             if (!class_exists($service)) {
-                return new Response('Invalid service.', 400, array('Content-Type' => 'text/json'));
+                return new JsonResponse('Invalid service', 400);
             }
-            
-            $class = new $service();
-            $class->setEm($this->em);
-            $class->setCache($this->cache);
 
-            if (!$parameters = $request->get('parameters')) 
+            if (!$parameters = $request->get('parameters')) {
                 $parameters = array();
-            
+            }
+
+            $result = array('status' => 'error', 'data' => 'Method not found', 'statusCode' => 400);
+            $class = new $service();
+
             if (method_exists($class, $method)) {
+                $class->setEm($this->em);
+                $class->setCache($this->cache);
                 $result = $class->$method($parameters);
             }
-            else {
-                $result = array('status' => 'error', 'data' => 'Method not found', 'statusCode' => 400);
-            }
-            
-            switch ($result['status']) {
-                case 'success':
-                    
-                    return new Response($this->serialize($result['data'], 'json'), 
-                                        isset($result['statusCode']) ? $result['statusCode'] : 200, 
-                                        array('Content-Type' => 'text/json'));
 
-                    break;
-                case 'error':
-                    
-                    return new Response('Error executing service - ' . $this->serialize($result['data'], 'json'), 
-                                        isset($result['statusCode']) ? $result['statusCode'] : 400, 
-                                        array('Content-Type' => 'text/json'));
-                    
-                    break;
+            if ('success' === $result['status']) {
+                return new JsonResponse($this->serialize($result['data'], 'json'),
+                                isset($result['statusCode']) ? $result['statusCode'] : 200);
             }
+
+            return new JsonResponse('Error executing service - ' . $this->serialize($result['data'], 'json'),
+                                isset($result['statusCode']) ? $result['statusCode'] : 400);
 
         })->value('method', 'execute');
 
@@ -145,30 +135,34 @@ class RpcControllerProvider implements ControllerProviderInterface
             }
 
             $authService = $this->getAuthenticationService();
-            if ($authService) {
-
-                if(!$request->headers->has($this->getAuthHeader())) {
-                    return new Response('Unauthorized', 401);
-                }
-
-                $token = $request->headers->get($this->getAuthHeader());
-                
-                $authService->setEm($this->em);
-                $authService->setCache($this->cache);
-
-                if (!$authService->authenticate($token)) {
-                    return new Response('Unauthorized', 401);    
-                }
-
-                $authorizationService = $this->getAuthorizationService();
-                if ($authorizationService) {
-                    
-                    $authorizationService->setEm($this->em);
-                    if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
-                        return new Response('Unauthorized', 401);    
-                    }
-                }
+            if (!$authService) {
+                return;
             }
+
+            if(!$request->headers->has($this->getAuthHeader())) {
+                return new JsonResponse('Unauthorized', 401);
+            }
+
+            $token = $request->headers->get($this->getAuthHeader());
+
+            $authService->setEm($this->em);
+            $authService->setCache($this->cache);
+
+            if (!$authService->authenticate($token)) {
+                return new JsonResponse('Unauthorized', 401);
+            }
+
+            $authorizationService = $this->getAuthorizationService();
+            if (!$authorizationService) {
+                return;
+            }
+
+            $authorizationService->setEm($this->em);
+
+            if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
+                return new JsonResponse('Unauthorized', 401);
+            }
+
         });
 
         return $controllers;
