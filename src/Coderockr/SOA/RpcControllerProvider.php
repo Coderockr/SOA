@@ -116,12 +116,12 @@ class RpcControllerProvider implements ControllerProviderInterface
                 
                 return new Response($this->serialize($result['data'], 'json'), 
                                     isset($result['statusCode']) ? $result['statusCode'] : 200, 
-                                    array('Content-Type' => 'text/json'));
+                                    array('Content-Type' => 'application/json'));
             }
 
             return new Response('Error executing service - ' . $this->serialize($result['data'], 'json'), 
                                 isset($result['statusCode']) ? $result['statusCode'] : 400, 
-                                array('Content-Type' => 'text/json'));
+                                array('Content-Type' => 'application/json'));
 
         })->value('method', 'execute');
 

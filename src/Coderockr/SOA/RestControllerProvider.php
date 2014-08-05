@@ -304,7 +304,7 @@ class RestControllerProvider implements ControllerProviderInterface
         });
 
         $controllers->after(function (Request $request, Response $response) {
-            $response->headers->set('Content-Type', 'text/json');
+            $response->headers->set('Content-Type', 'application/json');
         });
 
         $controllers->before(function (Request $request) use ($app) {
