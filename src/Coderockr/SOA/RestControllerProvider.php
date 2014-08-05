@@ -280,8 +280,7 @@ class RestControllerProvider implements ControllerProviderInterface
         })->assert('id', '\d+');
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
-            $data = $this->serialize($this->create($request, $entity), 'json');
-            return new JsonResponse($data);
+            return $this->serialize($this->create($request, $entity), 'json');
         });
 
         $controllers->put('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
@@ -290,9 +289,8 @@ class RestControllerProvider implements ControllerProviderInterface
             if (!$data) {
                 return new JsonResponse('Data not found', 404);
             }
-
-            $data = $this->serialize($data, 'json');
-            return new JsonResponse($data, 200);
+            
+            return $this->serialize($data, 'json');
         });
 
         $controllers->delete('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
