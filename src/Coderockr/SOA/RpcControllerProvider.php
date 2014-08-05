@@ -85,7 +85,9 @@ class RpcControllerProvider implements ControllerProviderInterface
     	$this->setEntityManager($app['orm.em']);
         $controllers = $app['controllers_factory'];
 
-        $controllers->match("{url}", function($url) use ($app) { return "OK"; })->assert('url', '.*')->method("OPTIONS");
+        $controllers->match("{url}", function($url) use ($app) { 
+            return new Response('', 204);
+        })->assert('url', '.*')->method("OPTIONS");
 
         $controllers->get('/', function (Application $app) {
             return 'TODO: documentation';
@@ -128,7 +130,7 @@ class RpcControllerProvider implements ControllerProviderInterface
         $controllers->before(function (Request $request) use ($app) {
 
             if ($request->getMethod() == 'OPTIONS') {
-                return;
+                return new Response('', 204);
             }
 
             $resource = $request->get('_route_params');
