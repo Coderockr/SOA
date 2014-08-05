@@ -258,7 +258,7 @@ class RestControllerProvider implements ControllerProviderInterface
             $count = isset($params['count']) ? $params['count'] : null;
             $sort = isset($params['sort']) ? $params['sort'] : null;
             
-            return $this->serialize($this->findAll($entity,
+            $data = $this->serialize($this->findAll($entity,
                 $fields,
                 $joins, 
                 $limit, 
@@ -266,6 +266,8 @@ class RestControllerProvider implements ControllerProviderInterface
                 $filter,
                 $sort, 
                 $count), 'json');
+
+            return new Response($data, 200, array('Content-Type' => 'application/json'));
         });
 
         $controllers->get('/{entity}/{id}', function (Application $app, $entity, $id) {
@@ -275,12 +277,14 @@ class RestControllerProvider implements ControllerProviderInterface
                 return new JsonResponse('Data not found', 404);
             }
             
-            return $this->serialize($data, 'json');
+            return new Response($this->serialize($data, 'json'), 200, array('Content-Type' => 'application/json'));
         
         })->assert('id', '\d+');
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
-            return $this->serialize($this->create($request, $entity), 'json');
+            $entityData = $this->serialize($this->create($request, $entity), 'json');
+
+            return new Response($entityData, 200, array('Content-Type' => 'application/json'));
         });
 
         $controllers->put('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
@@ -290,7 +294,7 @@ class RestControllerProvider implements ControllerProviderInterface
                 return new JsonResponse('Data not found', 404);
             }
             
-            return $this->serialize($data, 'json');
+            return new Response($this->serialize($data, 'json'), 200, array('Content-Type' => 'application/json'));
         });
 
         $controllers->delete('/{entity}/{id}', function (Application $app, Request $request, $entity, $id) {
@@ -301,10 +305,6 @@ class RestControllerProvider implements ControllerProviderInterface
             }
 
             return new JsonResponse('Data deleted', 204);
-        });
-
-        $controllers->after(function (Request $request, Response $response) {
-            $response->headers->set('Content-Type', 'application/json');
         });
 
         $controllers->before(function (Request $request) use ($app) {
