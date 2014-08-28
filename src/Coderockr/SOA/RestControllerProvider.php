@@ -114,7 +114,13 @@ class RestControllerProvider implements ControllerProviderInterface
             
             $sort = explode(':', $sort);
             if ($sort > 1) {
-                $queryBuilder->orderBy('e.' . $sort[0], $sort[1]);
+
+                $prop = $sort[0];
+                if (strpos($prop, '.') === false) {
+                    $prop = 'e.' . $prop;
+                }
+
+                $queryBuilder->orderBy($prop, $sort[1]);
             }
         }
 
