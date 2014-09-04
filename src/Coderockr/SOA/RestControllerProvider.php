@@ -75,8 +75,9 @@ class RestControllerProvider implements ControllerProviderInterface
         return $this->authenticationService;
     }
      
-    public function setAuthenticationService($authenticationService)
+    public function setAuthenticationService($authenticationService, $noAuthCalls = array())
     {
+        $this->noAuthCalls = $noAuthCalls;
         return $this->authenticationService = $authenticationService;
     }
 
@@ -364,3 +365,4 @@ class RestControllerProvider implements ControllerProviderInterface
         return $controllers;
     }   
 }
+         
