@@ -20,6 +20,7 @@ class RestControllerProvider implements ControllerProviderInterface
     private $entityNamespace;
     private $authenticationService = null;
     private $authorizationService = null;
+    private $noAuthCalls = array();
     private $authHeader = 'Authorization';
 
     public function getAuthHeader()
@@ -39,6 +40,11 @@ class RestControllerProvider implements ControllerProviderInterface
         $this->cache = $cache;
     }
     
+    public function getNoAuthCalls()
+    {
+        return $this->noAuthCalls;
+    }
+
     public function setEntityManager($em)
     {
         $this->em = $em;
@@ -101,7 +107,8 @@ class RestControllerProvider implements ControllerProviderInterface
                 if ($conditionOp == 'like') {
                     $conditionValue = '%'.$conditionValue.'%';
                 }
-
+                
+                $queryBuilder->select($entityName);
                 $queryBuilder->innerJoin(
                     'e.'.$join[0], 
                     $entityName, 
@@ -119,7 +126,6 @@ class RestControllerProvider implements ControllerProviderInterface
                 if (strpos($prop, '.') === false) {
                     $prop = 'e.' . $prop;
                 }
-
                 $queryBuilder->orderBy($prop, $sort[1]);
             }
         }
@@ -319,6 +325,10 @@ class RestControllerProvider implements ControllerProviderInterface
             
             if ($request->getMethod() == 'OPTIONS') {
                 return new Response('', 204);
+            }
+
+            if (in_array('/'.($this->get('_route_params')['entity']), $this->getNoAuthCalls())) {
+                return;
             }
 
             $authService = $this->getAuthenticationService();
