@@ -327,7 +327,7 @@ class RestControllerProvider implements ControllerProviderInterface
                 return new Response('', 204);
             }
 
-            if (in_array('/'.($this->get('_route_params')['entity']), $this->getNoAuthCalls())) {
+            if (in_array('/'.($request->get('_route_params')['entity']), $this->getNoAuthCalls())) {
                 return;
             }
 
