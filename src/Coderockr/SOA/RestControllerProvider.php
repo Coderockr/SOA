@@ -246,6 +246,7 @@ class RestControllerProvider implements ControllerProviderInterface
         if (is_array($data) && isset($data[0]) && is_object($data[0])) {
             $groupType[] = get_class($data[0]);
         }
+        
         return $serializer->serialize($data, $type, SerializationContext::create()->setGroups($groupType));
     }
 
@@ -298,7 +299,6 @@ class RestControllerProvider implements ControllerProviderInterface
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
             $entityData = $this->serialize($this->create($request, $entity), 'json');
-
             return new Response($entityData, 200, array('Content-Type' => 'application/json'));
         });
 
