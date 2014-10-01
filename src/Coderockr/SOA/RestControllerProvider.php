@@ -328,7 +328,9 @@ class RestControllerProvider implements ControllerProviderInterface
                 return new Response('', 204);
             }
 
-            if (in_array('/'.($request->get('_route_params')['entity']), $this->getNoAuthCalls())) {
+            $entity = $request->get('_route_params')['entity'];
+
+            if (in_array('/' . $entity, $this->getNoAuthCalls())) {
                 return;
             }
 
@@ -357,7 +359,7 @@ class RestControllerProvider implements ControllerProviderInterface
 
             $authorizationService->setEm($this->em);
 
-            if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
+            if (!$authorizationService->isAuthorized($token, $entity) {
                 return new JsonResponse('Unauthorized', 401);
             }
         });
