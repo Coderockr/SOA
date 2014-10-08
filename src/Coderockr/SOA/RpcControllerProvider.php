@@ -113,7 +113,7 @@ class RpcControllerProvider implements ControllerProviderInterface
                 $class->setCache($this->cache);
                 $result = $class->$method($parameters);
             }
-
+            
             if ('success' === $result['status']) {
                 
                 return new Response($this->serialize($result['data'], 'json'), 
@@ -136,7 +136,7 @@ class RpcControllerProvider implements ControllerProviderInterface
             $resource = $request->get('_route_params');
             $route = $resource['service'] .'/'.$resource['method'];
             
-            if (in_array($route, $this->getNoAuthCalls())) {
+             if (in_array($route, $this->getNoAuthCalls())) {
                 return;
             }
 
