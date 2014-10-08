@@ -105,7 +105,7 @@ class RpcControllerProvider implements ControllerProviderInterface
                 $parameters = array();
             }
 
-            $result = array('status' => 'error', 'data' => 'Method not found', 'statusCode' => 400);
+            $result = array('status' => 'error', 'data' => 'not_found', 'statusCode' => 400);
             $class = new $service();
 
             if (method_exists($class, $method)) {
@@ -121,7 +121,7 @@ class RpcControllerProvider implements ControllerProviderInterface
                                     array('Content-Type' => 'application/json'));
             }
 
-            return new Response('Error executing service - ' . $this->serialize($result['data'], 'json'), 
+            return new Response($this->serialize($result['data'], 'json'), 
                                 isset($result['statusCode']) ? $result['statusCode'] : 400, 
                                 array('Content-Type' => 'application/json'));
 

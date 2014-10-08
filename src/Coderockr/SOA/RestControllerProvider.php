@@ -102,6 +102,7 @@ class RestControllerProvider implements ControllerProviderInterface
                     $conditionValue = '%'.$conditionValue.'%';
                 }
 
+                $queryBuilder->select($entityName);
                 $queryBuilder->innerJoin(
                     'e.'.$join[0], 
                     $entityName, 
