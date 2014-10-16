@@ -20,6 +20,7 @@ class RestControllerProvider implements ControllerProviderInterface
     private $entityNamespace;
     private $authenticationService = null;
     private $authorizationService = null;
+    private $noAuthCalls = array();
     private $authHeader = 'Authorization';
 
     public function getAuthHeader()
@@ -39,6 +40,11 @@ class RestControllerProvider implements ControllerProviderInterface
         $this->cache = $cache;
     }
     
+    public function getNoAuthCalls()
+    {
+        return $this->noAuthCalls;
+    }
+
     public function setEntityManager($em)
     {
         $this->em = $em;
@@ -69,8 +75,9 @@ class RestControllerProvider implements ControllerProviderInterface
         return $this->authenticationService;
     }
      
-    public function setAuthenticationService($authenticationService)
+    public function setAuthenticationService($authenticationService, $noAuthCalls = array())
     {
+        $this->noAuthCalls = $noAuthCalls;
         return $this->authenticationService = $authenticationService;
     }
 
@@ -102,6 +109,7 @@ class RestControllerProvider implements ControllerProviderInterface
                     $conditionValue = '%'.$conditionValue.'%';
                 }
 
+                $queryBuilder->select($entityName);
                 $queryBuilder->innerJoin(
                     'e.'.$join[0], 
                     $entityName, 
@@ -114,7 +122,12 @@ class RestControllerProvider implements ControllerProviderInterface
             
             $sort = explode(':', $sort);
             if ($sort > 1) {
-                $queryBuilder->orderBy('e.' . $sort[0], $sort[1]);
+
+                $prop = $sort[0];
+                if (strpos($prop, '.') === false) {
+                    $prop = 'e.' . $prop;
+                }
+                $queryBuilder->orderBy($prop, $sort[1]);
             }
         }
 
@@ -233,6 +246,7 @@ class RestControllerProvider implements ControllerProviderInterface
         if (is_array($data) && isset($data[0]) && is_object($data[0])) {
             $groupType[] = get_class($data[0]);
         }
+        
         return $serializer->serialize($data, $type, SerializationContext::create()->setGroups($groupType));
     }
 
@@ -285,7 +299,6 @@ class RestControllerProvider implements ControllerProviderInterface
 
         $controllers->post('/{entity}', function (Application $app, Request $request, $entity) {
             $entityData = $this->serialize($this->create($request, $entity), 'json');
-
             return new Response($entityData, 200, array('Content-Type' => 'application/json'));
         });
 
@@ -315,6 +328,12 @@ class RestControllerProvider implements ControllerProviderInterface
                 return new Response('', 204);
             }
 
+            $entity = $request->get('_route_params')['entity'];
+
+            if (in_array('/' . $entity, $this->getNoAuthCalls())) {
+                return;
+            }
+
             $authService = $this->getAuthenticationService();
             if (!$authService) {
                 return;
@@ -340,7 +359,7 @@ class RestControllerProvider implements ControllerProviderInterface
 
             $authorizationService->setEm($this->em);
 
-            if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
+            if (!$authorizationService->isAuthorized($token, $entity)) {
                 return new JsonResponse('Unauthorized', 401);
             }
         });
@@ -348,3 +367,4 @@ class RestControllerProvider implements ControllerProviderInterface
         return $controllers;
     }   
 }
+         
