@@ -358,9 +358,10 @@ class RestControllerProvider implements ControllerProviderInterface
             }
 
             $authorizationService->setEm($this->em);
+            $authorizationService->setCache($this->cache);
 
             if (!$authorizationService->isAuthorized($token, $entity)) {
-                return new JsonResponse('Unauthorized', 401);
+                return new JsonResponse('Unauthorized', 403);
             }
         });
 
