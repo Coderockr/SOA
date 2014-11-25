@@ -109,9 +109,18 @@ class RpcControllerProvider implements ControllerProviderInterface
             $class = new $service();
 
             if (method_exists($class, $method)) {
-                $class->setEm($this->em);
-                $class->setCache($this->cache);
-                $class->setToken($request->headers->get($this->getAuthHeader()));
+                if (method_exists($class, 'setEm')) {
+                    $class->setEm($this->em);
+                }
+                
+                if (method_exists($class, 'setCache')) {
+                    $class->setCache($this->cache);
+                }
+
+                if (method_exists($class, 'setToken')) {
+                    $class->setToken($request->headers->get($this->getAuthHeader()));
+                }
+                
                 $result = $class->$method($parameters);
             }
             
