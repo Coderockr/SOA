@@ -123,8 +123,7 @@ class RpcControllerProvider implements ControllerProviderInterface
 
                 if (method_exists($class, 'setApp')) {
                     $class->setApp($app);
-                }
-                
+                }                
                 $result = $class->$method($parameters);
             }
             
@@ -178,9 +177,10 @@ class RpcControllerProvider implements ControllerProviderInterface
             }
 
             $authorizationService->setEm($this->em);
+            $authorizationService->setCache($this->cache);
 
-            if (!$authorizationService->isAuthorized($token, $resource['entity'])) {
-                return new JsonResponse('Unauthorized', 401);
+            if (!$authorizationService->isAuthorized($token, $resource)) {
+                return new JsonResponse('Unauthorized', 403);
             }
 
         });
