@@ -120,6 +120,10 @@ class RpcControllerProvider implements ControllerProviderInterface
                 if (method_exists($class, 'setToken')) {
                     $class->setToken($request->headers->get($this->getAuthHeader()));
                 }
+
+                if (method_exists($class, 'setApp')) {
+                    $class->setApp($app);
+                }
                 
                 $result = $class->$method($parameters);
             }
