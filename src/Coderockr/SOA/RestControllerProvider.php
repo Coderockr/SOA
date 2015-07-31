@@ -109,7 +109,7 @@ class RestControllerProvider implements ControllerProviderInterface
 
     public function create($request, $entity)
     {
-        return $this->restService($request, $entity, $this->token);
+        return $this->getRestService()->create($request, $entity, $this->token);
     }
 
     public function update($request, $entity, $id)
