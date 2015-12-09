@@ -100,16 +100,16 @@ class RpcControllerProvider implements ControllerProviderInterface
         
         $controllers->post('/{service}/{method}', function ($service, $method, Request $request) use ($app)
         {
-            $service = null;
+            $serviceClass = null;
             foreach ($this->serviceNamespace as $serviceNamespace) {
-                $service = $serviceNamespace . '\\' . ucfirst($service);
+                $serviceClass = $serviceNamespace . '\\' . ucfirst($service);
 
-                if (!class_exists($service)) {
-                    continue;
+                if (class_exists($serviceClass)) {
+                    break;
                 }
             }
 
-            if (!class_exists($service)) {
+            if (!class_exists($serviceClass)) {
                 return new JsonResponse('Invalid service', 400);
             }
             
@@ -119,7 +119,7 @@ class RpcControllerProvider implements ControllerProviderInterface
             }
 
             $result = array('status' => 'error', 'data' => 'not_found', 'statusCode' => 400);
-            $class = new $service();
+            $class = new $serviceClass();
 
             if (method_exists($class, $method)) {
                 if (method_exists($class, 'setEm')) {
