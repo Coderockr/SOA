@@ -50,6 +50,11 @@ class RpcControllerProvider implements ControllerProviderInterface
     
 	public function setServiceNamespace($serviceNamespace)
 	{
+        if (!is_array($serviceNamespace)) {
+            $this->serviceNamespace = array($serviceNamespace);
+            return;
+        }
+
 		$this->serviceNamespace = $serviceNamespace;
 	}
 
@@ -95,11 +100,19 @@ class RpcControllerProvider implements ControllerProviderInterface
         
         $controllers->post('/{service}/{method}', function ($service, $method, Request $request) use ($app)
         {
-            $service = $this->serviceNamespace . '\\' . ucfirst($service);
+            $service = null;
+            foreach ($this->serviceNamespace as $serviceNamespace) {
+                $service = $serviceNamespace . '\\' . ucfirst($service);
+
+                if (!class_exists($service)) {
+                    continue;
+                }
+            }
 
             if (!class_exists($service)) {
                 return new JsonResponse('Invalid service', 400);
             }
+            
 
             if (!$parameters = $request->get('parameters')) {
                 $parameters = array();
