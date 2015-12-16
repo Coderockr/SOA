@@ -125,6 +125,10 @@ class RpcControllerProvider implements ControllerProviderInterface
                 if (method_exists($class, 'setEm')) {
                     $class->setEm($this->em);
                 }
+
+                if (method_exists($class, 'setEntityManager')) {
+                    $class->setEntityManager($this->em);
+                }
                 
                 if (method_exists($class, 'setCache')) {
                     $class->setCache($this->cache);
